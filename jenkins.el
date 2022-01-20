@@ -122,12 +122,15 @@
 
 (defun get-jenkins-url ()
   "This function is for backward compatibility."
-  (let ((url (or jenkins-url jenkins-hostname)))
-    ;; Ensure URL ends with /.
-    (if (string-match-p (rx "/" string-end) url)
-        url
-      (concat url "/"))))
-
+  (let* ((url (or jenkins-url jenkins-hostname))
+         (url2
+          ;; Ensure URL ends with /.
+          (if (string-match-p (rx "/" string-end) url)
+              url
+            (concat url "/"))))
+    (if jenkins-viewname
+        (format "%sview/%s/" url2 jenkins-viewname)
+      url2)))
 
 (defvar *jenkins-jobs-list*
   nil
@@ -150,7 +153,6 @@
   "Jenkins url for get list of jobs in queue and their summaries."
   (format (concat
            "%s"
-           (if jenkins-viewname "view/%s/" jenkins-viewname "")
            "api/json?depth=2&tree=name,jobs[name,"
            "lastSuccessfulBuild[result,timestamp,duration,id],"
            "lastFailedBuild[result,timestamp,duration,id],"
@@ -419,7 +421,8 @@
   (let ((details-buffer-name (format "*jenkins: %s details*" jobname)))
     (switch-to-buffer details-buffer-name)
     (jenkins-job-render jobname)
-    (jenkins-job-view-mode)))
+    (jenkins-job-view-mode)
+    (beginning-of-buffer)))
 
 (defun jenkins-job-details-toggle ()
   "Toggle builds list."
@@ -469,7 +472,8 @@
 (defun jenkins--refresh-job-from-job-screen ()
   "Refresh the current job"
   (interactive)
-  (jenkins-job-render jenkins-local-jobname))
+  (jenkins-job-render jenkins-local-jobname)
+  (beginning-of-buffer))
 
 (defun jenkins-job-details-screen (jobname)
   "Jenkins job detailization screen, JOBNAME."
